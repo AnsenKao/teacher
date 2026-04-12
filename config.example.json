@@ -1,0 +1,11 @@
+{
+  "discord": {
+    "botToken": "YOUR_BOT_TOKEN",
+    "channelId": "YOUR_CHANNEL_ID"
+  },
+  "subjects": ["生物"],
+  "educationLevels": ["高級中等學校(高中)"],
+  "cron": "0 8 * * *",
+  "dataPath": "./data/jobs.json",
+  "headless": true
+}

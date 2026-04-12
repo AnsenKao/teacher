@@ -1,0 +1,11 @@
+node_modules/
+dist/
+
+# 含敏感資訊，不進版控
+config.json
+
+# 執行期間產生的狀態檔
+data/jobs.json
+
+# 日誌
+*.log

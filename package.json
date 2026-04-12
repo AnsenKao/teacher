@@ -1,0 +1,26 @@
+{
+  "name": "teacher",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "start": "ts-node src/scheduler.ts",
+    "once": "ts-node src/scheduler.ts --once",
+    "dev": "ts-node src/scheduler.ts --once"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "discord.js": "^14.26.2",
+    "node-cron": "^4.2.1",
+    "playwright": "^1.59.1"
+  },
+  "devDependencies": {
+    "@types/node": "^25.6.0",
+    "@types/node-cron": "^3.0.11",
+    "ts-node": "^10.9.2",
+    "typescript": "^6.0.2"
+  }
+}
