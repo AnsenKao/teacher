@@ -8,6 +8,7 @@ export interface Config {
   cron: string;
   dataPath: string;
   headless: boolean;
+  schoolType?: '公立' | '私立' | '不分';
 }
 
 export interface JobListing {

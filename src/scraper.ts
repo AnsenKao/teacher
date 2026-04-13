@@ -231,6 +231,18 @@ export async function scrape(config: Config): Promise<JobListing[]> {
         await page.locator('#ContentPlaceHolder1_txttbJobSub').fill(subject);
       }
 
+      // 選擇學校性質（公立/私立/不分）
+      if (config.schoolType && config.schoolType !== '不分') {
+        const radioLabel = page.locator(`label:text-is("${config.schoolType}")`).first();
+        const radioFor = await radioLabel.getAttribute('for').catch(() => null);
+        if (radioFor) {
+          await page.locator(`#${radioFor}`).check();
+          console.log(`  學校性質：${config.schoolType}`);
+        } else {
+          console.log(`  找不到學校性質「${config.schoolType}」radio button`);
+        }
+      }
+
       // 送出查詢
       await page.locator('#ContentPlaceHolder1_bntSearch').click();
       await page.waitForLoadState('networkidle');
