@@ -8,5 +8,11 @@
   "cron": "0 8 * * *",
   "dataPath": "./data/jobs.json",
   "headless": true,
-  "schoolType": "公立"
+  "schoolType": "公立",
+  "kh": {
+    "formType": "高中代理代課[長期]",
+    "subjects": ["生物"],
+    "schoolYear": 115,
+    "dataPath": "./data/kh-jobs.json"
+  }
 }

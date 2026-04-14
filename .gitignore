@@ -5,7 +5,7 @@ dist/
 config.json
 
 # 執行期間產生的狀態檔
-data/jobs.json
+data/
 
 # 日誌
 *.log

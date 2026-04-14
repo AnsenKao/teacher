@@ -12,7 +12,7 @@ npx tsc --noEmit  # 型別檢查
 
 ## Architecture
 
-單一流程：`scheduler.ts` → `scraper.ts` → `notifier.ts`
+雙來源流程：`scheduler.ts` → `scraper.ts` + `scraper-kh.ts` → `notifier.ts`
 
 **執行流程（scheduler.ts）**
 1. 載入 `config.json`，讀取 `data/jobs.json`（已知 Job ID store）
@@ -54,6 +54,28 @@ tables.find(t => t.querySelector("a[href*=\"toSort('tbUntCde')\"]"))
 
 新增科目時在 `SUBJECT_PATHS` 補對應路徑即可；未知科目自動 fallback 到關鍵字搜尋。
 
+**爬蟲（scraper-kh.ts）**
+
+目標網站：`https://employ.kh.edu.tw/public/QueryMain.aspx`（ASP.NET WebForms，需 Playwright）
+
+直接導航到 `QueryMain.aspx`（不透過外層 frameset）。
+
+下拉選單設定流程：
+1. `#ContentPlaceHolder1_ddlYY` 選學年度（e.g. `114`）
+2. `#ContentPlaceHolder1_ddlFormType` 選簡章類別（e.g. `7` = 高中代理代課[長期]）
+3. `#ContentPlaceHolder1_ddlSubj` 選科目別（e.g. `生物`）
+
+**注意：** 每個 `selectOption` 之後必須先 `waitForTimeout(600)` 再 `waitForLoadState('networkidle')`。
+原因：onchange 是 `setTimeout('__doPostBack(...)', 0)`，直接 `waitForLoadState` 會在 setTimeout 觸發前就 resolve。
+
+分頁：點擊 `a[href*="Page$N'"]` 連結（精確比對加引號，避免 `Page$2` 匹配 `Page$20`）。
+
+結果表格：找 10 個 td 且無 colspan 的列；公告連結在 td[5]，科目在連結文字的第二行。
+
+唯一 ID：公告 HTML 檔案的完整 URL（e.g. `https://employ.kh.edu.tw/Html/2025/8/鳳山區...第X號.html`）。
+
+**切換學年度：** 在 `config.json` 的 `kh.schoolYear` 由 `114` 改為 `115` 即可。115 學年度開放後自動切換。
+
 ## Config
 
 `config.json`（不進版控，參考 `config.example.json`）：
@@ -65,7 +87,13 @@ tables.find(t => t.querySelector("a[href*=\"toSort('tbUntCde')\"]"))
   "educationLevels": ["高級中等學校(高中)"],
   "cron": "0 8 * * *",
   "dataPath": "./data/jobs.json",
-  "headless": true
+  "headless": true,
+  "kh": {
+    "formType": "高中代理代課[長期]",
+    "subjects": ["生物"],
+    "schoolYear": 114,
+    "dataPath": "./data/kh-jobs.json"
+  }
 }
 ```
 

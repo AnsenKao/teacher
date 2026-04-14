@@ -2,8 +2,9 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as cron from 'node-cron';
 import { scrape } from './scraper';
-import { notify } from './notifier';
-import { Config, JobListing, JobStore } from './types';
+import { scrapeKh } from './scraper-kh';
+import { notify, notifyKh } from './notifier';
+import { Config, JobListing, JobStore, KhJobListing, KhJobStore } from './types';
 
 const CONFIG_PATH = path.resolve(__dirname, '..', 'config.json');
 
@@ -22,6 +23,23 @@ function loadStore(dataPath: string): JobStore {
   } catch {
     return {};
   }
+}
+
+function loadKhStore(dataPath: string): KhJobStore {
+  const absPath = path.resolve(__dirname, '..', dataPath);
+  if (!fs.existsSync(absPath)) return {};
+  try {
+    return JSON.parse(fs.readFileSync(absPath, 'utf-8')) as KhJobStore;
+  } catch {
+    return {};
+  }
+}
+
+function saveKhStore(dataPath: string, store: KhJobStore): void {
+  const absPath = path.resolve(__dirname, '..', dataPath);
+  const dir = path.dirname(absPath);
+  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+  fs.writeFileSync(absPath, JSON.stringify(store, null, 2), 'utf-8');
 }
 
 function saveStore(dataPath: string, store: JobStore): void {
@@ -85,6 +103,52 @@ async function run(): Promise<void> {
   }
   saveStore(config.dataPath, store);
   console.log(`已儲存 ${Object.keys(store).length} 筆職缺到 ${config.dataPath}`);
+
+  // ── 高雄市甄選公告 ──────────────────────────────────────────
+  if (config.kh) {
+    const khStore = loadKhStore(config.kh.dataPath);
+    const khKnownIds = new Set(Object.keys(khStore));
+    console.log(`\n[KH] 已知職缺：${khKnownIds.size} 筆`);
+
+    const khCurrentJobs = await scrapeKh(config);
+
+    // null = 學年度尚未開放，保留 store 原狀不動
+    if (khCurrentJobs === null) {
+      console.log('[KH] 學年度尚未開放，store 維持不變');
+    } else {
+
+    const khNewJobs = khCurrentJobs.filter((j) => !khKnownIds.has(j.jobId));
+    console.log(`[KH] 新職缺：${khNewJobs.length} 筆`);
+
+    if (khNewJobs.length > 0) {
+      if (config.discord.botToken !== 'YOUR_BOT_TOKEN') {
+        await notifyKh(khNewJobs, config);
+      } else {
+        console.log('[KH] （略過 Discord 通知，因未設定 Token）');
+        for (const j of khNewJobs) {
+          console.log(`  - ${j.school}: ${j.announcement} ${j.subject} [截止：${j.deadline}]`);
+        }
+      }
+    }
+
+    // 移除已下架的 KH 職缺
+    const khCurrentIds = new Set(khCurrentJobs.map((j) => j.jobId));
+    const khRemovedIds = [...khKnownIds].filter((id) => !khCurrentIds.has(id));
+    if (khRemovedIds.length > 0) {
+      for (const id of khRemovedIds) {
+        delete khStore[id];
+      }
+      console.log(`[KH] 已移除 ${khRemovedIds.length} 筆下架職缺`);
+    }
+
+    for (const job of khCurrentJobs) {
+      khStore[job.jobId] = job;
+    }
+    saveKhStore(config.kh.dataPath, khStore);
+    console.log(`[KH] 已儲存 ${Object.keys(khStore).length} 筆職缺到 ${config.kh.dataPath}`);
+    } // end else
+  }
+
   console.log(`[${new Date().toLocaleString('zh-TW')}] 執行完成\n`);
 }
 
